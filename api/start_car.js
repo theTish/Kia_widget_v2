@@ -1,4 +1,5 @@
-const { login } = require('bluelinky');
+const bluelinky = require('bluelinky');
+const login = bluelinky.default || bluelinky;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
