@@ -11,9 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { login } = bluelinky;
-
-    const client = await login({
+    const client = await bluelinky({
       username: process.env.KIA_USERNAME,
       password: process.env.KIA_PASSWORD,
       pin: process.env.KIA_PIN,
