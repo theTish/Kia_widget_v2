@@ -21,7 +21,8 @@ export default async function handler(req, res) {
       brand: 'kia',
     });
 
-    const vehicle = await client.getVehicles().then(v => v[0]); // VIN optional
+    const vehicles = await client.getVehicles();
+    const vehicle = vehicles[0];
 
     const result = await vehicle.startClimate({
       airCtrl: true,
