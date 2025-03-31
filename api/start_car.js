@@ -1,4 +1,4 @@
-import { login } from 'bluelinky';
+import bluelinky from 'bluelinky';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,6 +11,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { login } = bluelinky;
+
     const client = await login({
       username: process.env.KIA_USERNAME,
       password: process.env.KIA_PASSWORD,
@@ -19,9 +21,7 @@ export default async function handler(req, res) {
       brand: 'kia',
     });
 
-    const vehicle = process.env.KIA_VIN
-      ? client.getVehicle(process.env.KIA_VIN)
-      : client.getVehicles()[0];
+    const vehicle = await client.getVehicles().then(v => v[0]); // VIN optional
 
     const result = await vehicle.startClimate({
       airCtrl: true,
