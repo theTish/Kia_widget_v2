@@ -1,6 +1,6 @@
-const { login } = require('bluelinky');
+import { login } from 'bluelinky';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -19,7 +19,10 @@ module.exports = async (req, res) => {
       brand: 'kia',
     });
 
-    const vehicle = client.getVehicle(process.env.KIA_VIN);
+    const vehicle = process.env.KIA_VIN
+      ? client.getVehicle(process.env.KIA_VIN)
+      : client.getVehicles()[0];
+
     const result = await vehicle.startClimate({
       airCtrl: true,
       heating: true,
@@ -33,4 +36,4 @@ module.exports = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-};
+}
