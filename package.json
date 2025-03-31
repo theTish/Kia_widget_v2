@@ -1,5 +1,5 @@
 {
-  "type": "module",
+  "type": "commonjs",
   "dependencies": {
     "bluelinky": "^5.1.0",
     "dotenv": "^16.0.0"
