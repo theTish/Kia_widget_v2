@@ -1,6 +1,6 @@
-import bluelinky from 'bluelinky';
+const { login } = require('bluelinky');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const client = await bluelinky({
+    const client = await login({
       username: process.env.KIA_USERNAME,
       password: process.env.KIA_PASSWORD,
       pin: process.env.KIA_PIN,
@@ -35,4 +35,4 @@ export default async function handler(req, res) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-}
+};
