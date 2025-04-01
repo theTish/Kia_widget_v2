@@ -1,7 +1,10 @@
-// api/start_car.js (ESM Version - Attempt 2: Default Import + Functional Call)
+// api/start_car.js (ESM Version - Attempt 3: Default Import + Class Access)
 
-// Use ESM default import for CJS module interoperability
-import bluelinky from 'bluelinky';
+// Use ESM default import to get the wrapper object
+import bluelinkyImportObject from 'bluelinky';
+
+// Access the actual class constructor from the imported object's 'BlueLinky' property
+const Bluelinky = bluelinkyImportObject.BlueLinky;
 
 // Use export default for the Vercel handler function
 export default async function handler(req, res) {
@@ -18,24 +21,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Authorization successful. Preparing Bluelinky login (v8.3.1 - ESM default import)...');
+    console.log('Authorization successful. Preparing Bluelinky login (v8.3.1 - ESM class access)...');
     // Optional: Log env vars
     console.log('KIA_USERNAME:', process.env.KIA_USERNAME ? 'Exists' : 'MISSING/UNDEFINED');
     console.log('KIA_PIN:', process.env.KIA_PIN ? 'Exists' : 'MISSING/UNDEFINED');
     console.log('KIA_REGION:', process.env.KIA_REGION || 'CA (defaulted)');
 
-    // --- Check if the default import is a function ---
-    if (typeof bluelinky !== 'function') {
-        console.error('CRITICAL ERROR: Default import "bluelinky" is not a function (v8.3.1 - ESM). Type:', typeof bluelinky);
-        // Log its structure if it's not a function
-        console.log('Structure of default import:', bluelinky);
-        return res.status(500).json({ error: 'Failed to load Bluelinky library correctly (v8.3.1 - ESM). Default import is not a function.' });
+    // --- Check if we accessed the Bluelinky class correctly ---
+    if (typeof Bluelinky !== 'function') {
+        // This shouldn't happen now, but keep as a safeguard
+        console.error('CRITICAL ERROR: Accessed Bluelinky is not a function/constructor (v8.3.1 - ESM). Value:', Bluelinky);
+        console.log('Imported object was:', bluelinkyImportObject);
+        return res.status(500).json({ error: 'Failed to load Bluelinky library correctly (v8.3.1 - ESM). Could not access constructor.' });
     }
-    console.log('Attempting Bluelinky login using default import as function (v8.3.1 - ESM)...');
+    console.log('Attempting Bluelinky class instantiation using accessed constructor (v8.3.1 - ESM)...');
     // --- End Check ---
 
-    // *** Call the default import directly as a function ***
-    const client = await bluelinky({
+    // *** Instantiate using the accessed class constructor ***
+    const client = new Bluelinky({
         username: process.env.KIA_USERNAME,
         password: process.env.KIA_PASSWORD,
         pin: process.env.KIA_PIN,
@@ -43,13 +46,9 @@ export default async function handler(req, res) {
         brand: 'kia',
     });
 
-    // Check if login returned a valid client object
-    if (!client || typeof client.getVehicles !== 'function') {
-        console.error('Bluelinky default import function did not return a valid client object (v8.3.1 - ESM).');
-        return res.status(500).json({ error: 'Bluelinky login failed to return client (v8.3.1 - ESM).' });
-    }
+    // Assuming no separate .login() needed
 
-    console.log('Bluelinky login call returned (v8.3.1 - ESM), fetching vehicles...');
+    console.log('Bluelinky client created (v8.3.1 - ESM), fetching vehicles...');
     const vehicles = await client.getVehicles();
      if (!vehicles || vehicles.length === 0) {
         console.error('No vehicles found for this account.');
@@ -64,7 +63,7 @@ export default async function handler(req, res) {
       climate: true,
       heating: true,
       defrost: true,
-      temp: 22,
+      temp: 22, // Still trying temp first, docs used tempCode
       duration: 10
     });
 
@@ -72,7 +71,7 @@ export default async function handler(req, res) {
      return res.status(200).json({ status: 'Vehicle climate start initiated (v8.3.1 - ESM)', result });
 
   } catch (err) {
-     console.error('ERROR during Bluelinky operation (v8.3.1 - ESM functional call):', err); // *** Check this error carefully ***
+     console.error('ERROR during Bluelinky operation (v8.3.1 - ESM class access):', err); // *** Check error here if instantiation succeeds but operation fails ***
      return res.status(500).json({
         error: 'Internal Server Error during Bluelinky operation.',
         details: err.message,
