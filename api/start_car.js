@@ -1,6 +1,5 @@
 // api/start_car.js
-const bluelinky = require('bluelinky');
-const login = bluelinky.default || bluelinky;
+const { Bluelinky } = require('bluelinky'); // Correct import based on docs
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -9,55 +8,62 @@ module.exports = async (req, res) => {
 
   const auth = req.headers.authorization;
   if (!auth || auth !== `Bearer ${process.env.SECRET_KEY}`) {
-    console.log('Authorization failed!'); // Added log
+    console.log('Authorization failed!');
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
   try {
-    // ---- Start Added Logs ----
+    // Keep these logs for verification on the first run
     console.log('Authorization successful. Preparing Bluelinky login...');
     console.log('KIA_USERNAME:', process.env.KIA_USERNAME ? 'Exists' : 'MISSING/UNDEFINED');
-    // IMPORTANT: Do NOT log the actual password!
     console.log('KIA_PASSWORD:', process.env.KIA_PASSWORD ? 'Exists' : 'MISSING/UNDEFINED');
     console.log('KIA_PIN:', process.env.KIA_PIN ? 'Exists' : 'MISSING/UNDEFINED');
     console.log('KIA_REGION:', process.env.KIA_REGION || 'CA (defaulted)');
-    console.log('Attempting Bluelinky login call...');
-    // ---- End Added Logs ----
 
-    const client = await login({ // This is likely around line 15 relative to the start of the module.exports function
+    console.log('Attempting Bluelinky class instantiation...');
+
+    // Correct initialization based on docs
+    const client = new Bluelinky({
       username: process.env.KIA_USERNAME,
       password: process.env.KIA_PASSWORD,
       pin: process.env.KIA_PIN,
-      region: process.env.KIA_REGION || 'CA', // Keep default just in case
-      brand: 'kia',
+      region: process.env.KIA_REGION || 'CA',
+      brand: 'kia', // Assuming 'kia' brand is correct for your vehicle/region
     });
 
-    // If login succeeds, this will run
-    console.log('Bluelinky login successful, fetching vehicles...');
+    // No separate client.login() needed based on docs examples
+
+    console.log('Bluelinky client created, fetching vehicles...');
     const vehicles = await client.getVehicles();
-    const vehicle = vehicles[0];
+    if (!vehicles || vehicles.length === 0) {
+        console.error('No vehicles found for this account.');
+        return res.status(500).json({ error: 'No vehicles found' });
+    }
+    const vehicle = vehicles[0]; // Use the first vehicle found
+    console.log(`Found vehicle VIN: ${vehicle.vin}`);
 
-    console.log('Starting climate control...'); // Added log
+    console.log('Attempting to start climate control...');
+
+    // Adjusted startClimate parameters based on docs examples
+    // Using 'climate: true' instead of 'airCtrl'. Trying 'temp' first.
+    // Set heating/defrost as desired.
     const result = await vehicle.startClimate({
-      airCtrl: true,
-      heating: true,
-      defrost: true,
-      temp: 22,
-      duration: 10
+      climate: true,          // Use 'climate' instead of 'airCtrl'
+      heating: true,          // Set as desired
+      defrost: true,          // Set as desired
+      temp: 22,               // Keep 'temp' for now, check if it works (Docs use tempCode)
+      duration: 10            // Duration in minutes
     });
 
-    console.log('Climate control command sent.'); // Added log
-    res.status(200).json({ status: 'Vehicle climate started', result });
+    console.log('Climate control command sent successfully.');
+    res.status(200).json({ status: 'Vehicle climate start initiated', result });
 
   } catch (err) {
-    // ---- Improved Error Logging ----
-    console.error('ERROR during Bluelinky operation:', err); // Log the full error object
-    // Send more detailed error info back in the response for debugging
+    console.error('ERROR during Bluelinky operation:', err);
     res.status(500).json({
         error: 'Internal Server Error during Bluelinky operation.',
         details: err.message,
-        stack: err.stack // Include stack trace in response (useful for debugging)
+        stack: err.stack
     });
-    // ---- End Improved Error Logging ----
   }
 };
