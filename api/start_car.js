@@ -35,5 +35,10 @@ module.exports = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
+
+    // api/hello.js
+module.exports = (req, res) => {
+  res.status(200).send('Hello from Vercel API!');
+};
   }
 };
