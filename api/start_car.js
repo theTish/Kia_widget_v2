@@ -1,4 +1,4 @@
-// api/start_car.js (ESM - Reverting to include region)
+// api/start_car.js (ESM - Attempting with direct getVehicle by VIN)
 
 import bluelinkyImportObject from 'bluelinky';
 const Bluelinky = bluelinkyImportObject.BlueLinky;
@@ -7,40 +7,46 @@ export default async function handler(req, res) {
   // ... Method Check ...
   // ... Auth Check ...
 
+  // --- Add Check for KIA_VIN environment variable ---
+  if (!process.env.KIA_VIN) {
+    console.error("CRITICAL ERROR: KIA_VIN environment variable is not set.");
+    return res.status(500).json({ error: 'Server configuration error: VIN not set.' });
+  }
+  // --- End Check ---
+
   try {
-    console.log('Authorization successful. Preparing Bluelinky login (v8.3.1 - ESM class access - WITH REGION)...');
-    // Log exact values being used (except password/PIN)
+    console.log('Authorization successful. Preparing Bluelinky login (v8.3.1 - ESM class access)...');
     console.log(`Using KIA_USERNAME: ${process.env.KIA_USERNAME}`);
-    console.log(`Using KIA_PIN: [${process.env.KIA_PIN ? 'Exists and has length ' + process.env.KIA_PIN.length : 'MISSING or empty'}]`); // Verify PIN exists and check length
+    console.log(`Using KIA_PIN: [${process.env.KIA_PIN ? 'Exists and has length ' + process.env.KIA_PIN.length : 'MISSING or empty'}]`);
     const regionToUse = process.env.KIA_REGION || 'CA';
     console.log(`Using region: ${regionToUse}`);
     console.log(`Using brand: kia`);
+    console.log(`Using KIA_VIN: ${process.env.KIA_VIN}`); // Log the VIN being used
 
-    if (typeof Bluelinky !== 'function') {
-        console.error('CRITICAL ERROR: Accessed Bluelinky is not a function/constructor (v8.3.1 - ESM). Value:', Bluelinky);
-        return res.status(500).json({ error: 'Failed to load Bluelinky library correctly (v8.3.1 - ESM). Could not access constructor.' });
-    }
-    console.log('Attempting Bluelinky class instantiation using accessed constructor (WITH REGION)...');
+    if (typeof Bluelinky !== 'function') { /* ... Error handling ... */ }
+    console.log('Attempting Bluelinky class instantiation...');
 
-    // *** Instantiate WITH region ***
     const client = new Bluelinky({
         username: process.env.KIA_USERNAME,
-        password: process.env.KIA_PASSWORD, // Assumed correct from web login
-        pin: process.env.KIA_PIN,           // *** ENSURE THIS IS CORRECT ***
-        region: regionToUse,                // Put region back
+        password: process.env.KIA_PASSWORD,
+        pin: process.env.KIA_PIN,
+        region: regionToUse,
         brand: 'kia',
+        // NOTE: VIN is typically NOT passed in constructor
     });
 
-    console.log('Bluelinky client created, fetching vehicles...');
-    const vehicles = await client.getVehicles();
-     if (!vehicles || vehicles.length === 0) {
-        // If this error still happens, PIN or Primary Account are highly suspect
-        console.error('No vehicles found for this account (WITH REGION attempt). CHECK PIN AND PRIMARY ACCOUNT STATUS.');
-        return res.status(500).json({ error: 'No vehicles found (region specified, check PIN/Account)' });
+    console.log('Bluelinky client created. Attempting direct getVehicle by VIN...');
+
+    // *** Skip getVehicles(), try getVehicle(vin) directly ***
+    const vehicle = await client.getVehicle(process.env.KIA_VIN);
+
+     // Check if a valid vehicle object was returned
+     if (!vehicle || !vehicle.vin) {
+        console.error(`No vehicle found using direct getVehicle for VIN: ${process.env.KIA_VIN}`);
+        return res.status(500).json({ error: 'No vehicle found for specified VIN' });
     }
-    // If vehicles ARE found...
-    const vehicle = vehicles[0];
-     console.log(`Found vehicle VIN: ${vehicle.vin}`);
+    // If vehicle IS found...
+     console.log(`Found vehicle directly via VIN: ${vehicle.vin}`);
 
      console.log('Attempting to start climate control (v8.3.1 - ESM)...');
     const result = await vehicle.startClimate({
@@ -55,7 +61,7 @@ export default async function handler(req, res) {
      return res.status(200).json({ status: 'Vehicle climate start initiated (v8.3.1 - ESM)', result });
 
   } catch (err) {
-     console.error('ERROR during Bluelinky operation (v8.3.1 - ESM class access - WITH REGION):', err);
+     console.error('ERROR during Bluelinky operation (v8.3.1 - ESM direct getVehicle):', err);
      return res.status(500).json({
         error: 'Internal Server Error during Bluelinky operation.',
         details: err.message,
