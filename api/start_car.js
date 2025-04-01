@@ -1,50 +1,49 @@
-// api/start_car.js - Try functional call with bluelinky version "8.3.1"
+// api/start_car.js (ESM Version)
 
-const bluelinky = require('bluelinky');
+// Use ESM import syntax
+import { Bluelinky } from 'bluelinky';
 
-// *** Assume functional call needed even for v8 with require ***
-let loginFunction = null;
-if (typeof bluelinky === 'function') {
-    console.log('Using main bluelinky import as login function (for v8.3.1).');
-    loginFunction = bluelinky;
-} else if (bluelinky && typeof bluelinky.login === 'function') {
-    // Less likely based on previous tests, but check just in case
-    console.log('Using bluelinky.login method (for v8.3.1).');
-    loginFunction = bluelinky.login;
-}
+// Use export default for the Vercel handler function
+export default async function handler(req, res) {
+  // Method Check
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-module.exports = async (req, res) => {
-  // ... Auth checks ...
-  if (req.method !== 'POST') { return res.status(405).json({ error: 'Method Not Allowed' }); }
+  // Authorization Check
   const auth = req.headers.authorization;
-  if (!auth || auth !== `Bearer ${process.env.SECRET_KEY}`) { return res.status(403).json({ error: 'Unauthorized' }); }
+  if (!auth || auth !== `Bearer ${process.env.SECRET_KEY}`) {
+    console.log('Authorization failed!');
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
 
   try {
-    console.log('Authorization successful. Preparing Bluelinky login (v8.3.1)...');
-    // ... Env Var logs ...
+    console.log('Authorization successful. Preparing Bluelinky login (v8.3.1 - ESM)...');
+    // Optional: Log env vars to confirm they load
+    console.log('KIA_USERNAME:', process.env.KIA_USERNAME ? 'Exists' : 'MISSING/UNDEFINED');
+    console.log('KIA_PIN:', process.env.KIA_PIN ? 'Exists' : 'MISSING/UNDEFINED');
+    console.log('KIA_REGION:', process.env.KIA_REGION || 'CA (defaulted)');
 
-    if (!loginFunction) {
-         console.error('CRITICAL ERROR: No valid Bluelinky login function identified (v8.3.1).');
-         return res.status(500).json({ error: 'Failed to load Bluelinky library correctly (v8.3.1).' });
+    // Check if Bluelinky imported correctly (less likely to fail silently in ESM)
+    if (typeof Bluelinky !== 'function') {
+        // This check might be redundant if import fails earlier, but good sanity check
+        console.error('CRITICAL ERROR: Imported Bluelinky is not a function/constructor (v8.3.1 - ESM). Value:', Bluelinky);
+        return res.status(500).json({ error: 'Failed to load Bluelinky library correctly (v8.3.1 - ESM). Named import is not a constructor.' });
     }
-    console.log('Attempting Bluelinky login using identified function (v8.3.1)...');
+    console.log('Attempting Bluelinky class instantiation using named import (v8.3.1 - ESM)...');
 
-    // *** Call the identified function (NOT as a constructor) ***
-    const client = await loginFunction({
+    // *** Instantiate using the named import (as per docs) ***
+    const client = new Bluelinky({
         username: process.env.KIA_USERNAME,
-        password: process.env.KIA_PASSWORD,
+        password: process.env.KIA_PASSWORD, // Ensure password env var exists
         pin: process.env.KIA_PIN,
         region: process.env.KIA_REGION || 'CA',
         brand: 'kia',
     });
 
-    // Check if login returned a valid client object
-    if (!client || typeof client.getVehicles !== 'function') {
-        console.error('Bluelinky login function did not return a valid client object (v8.3.1).');
-        return res.status(500).json({ error: 'Bluelinky login failed to return client (v8.3.1).' });
-    }
+    // Assuming no separate .login() needed
 
-    console.log('Bluelinky login call returned (v8.3.1), fetching vehicles...');
+    console.log('Bluelinky client created (v8.3.1 - ESM), fetching vehicles...');
     const vehicles = await client.getVehicles();
      if (!vehicles || vehicles.length === 0) {
         console.error('No vehicles found for this account.');
@@ -53,25 +52,25 @@ module.exports = async (req, res) => {
     const vehicle = vehicles[0];
      console.log(`Found vehicle VIN: ${vehicle.vin}`);
 
-     console.log('Attempting to start climate control (v8.3.1)...');
-    // Use climate parameters expected for v5+ (assuming v8 is similar)
+     console.log('Attempting to start climate control (v8.3.1 - ESM)...');
+    // Using corrected climate params based on v5+ docs
     const result = await vehicle.startClimate({
       climate: true,
       heating: true,
       defrost: true,
-      temp: 22,
+      temp: 22, // Still trying temp first, docs used tempCode
       duration: 10
     });
 
-     console.log('Climate control command sent successfully (v8.3.1).');
-     res.status(200).json({ status: 'Vehicle climate start initiated (v8.3.1)', result });
+     console.log('Climate control command sent successfully (v8.3.1 - ESM).');
+     return res.status(200).json({ status: 'Vehicle climate start initiated (v8.3.1 - ESM)', result });
 
   } catch (err) {
-     console.error('ERROR during Bluelinky operation (v8.3.1):', err); // *** What error occurs here? _events? Something new? ***
-    res.status(500).json({
+     console.error('ERROR during Bluelinky operation (v8.3.1 - ESM):', err);
+     return res.status(500).json({
         error: 'Internal Server Error during Bluelinky operation.',
         details: err.message,
-        stack: err.stack
+        stack: err.stack // Consider removing stack in production
     });
   }
-};
+} // End of export default function
